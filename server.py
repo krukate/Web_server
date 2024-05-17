@@ -47,6 +47,7 @@ def handle_client(conn, addr):
             response_status = "HTTP/1.1 404 Not Found\r\n"
             content_length = len(content)
 
+
 sock.listen(5)
 
 conn, addr = sock.accept()
