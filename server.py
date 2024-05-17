@@ -47,24 +47,45 @@ def handle_client(conn, addr):
             response_status = "HTTP/1.1 404 Not Found\r\n"
             content_length = len(content)
 
+    now = datetime.datetime.now()
+    date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    content_type = "text/html"
+    server_name = "SelfMadeServer v0.0.1"
+
+    response_headers = {
+        "Date": date,
+        "Content-Type": content_type,
+        "Server": server_name,
+        "Content-Length": content_length,
+        "Connection": "close"
+    }
+
+    headers_str = ""
+    for header_name, header_value in response_headers.items():
+        headers_str += f"{header_name}: {header_value}\r\n"
+
+    response = response_status + headers_str + "\r\n" + content.decode("utf-8")
+
+    conn.send(response.encode())
+
+    conn.close()
+
+
+# Create a socket and bind to the specified port
+sock = socket.socket()
+try:
+    sock.bind(('', port))
+    print(f"Using port {port}")
+except OSError:
+    print(f"Port {port} is already in use")
+    exit()
 
 sock.listen(5)
 
-conn, addr = sock.accept()
-print("Connected", addr)
+while True:
+    conn, addr = sock.accept()
+    print("Connected", addr)
 
-data = conn.recv(8192)
-msg = data.decode()
-
-print(msg)
-
-resp = """HTTP/1.1 200 OK
-Server: SelfMadeServer v0.0.1
-Content-type: text/html
-Connection: close
-
-Hello, webworld!"""
-
-conn.send(resp.encode())
-
-conn.close()
+    # Start a new thread to handle the client
+    client_thread = threading.Thread(target=handle_client, args=(conn, addr))
+    client_thread.start()
