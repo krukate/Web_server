@@ -1,13 +1,51 @@
 import socket
+import os
+import configparser
+import datetime
+import threading
 
-sock = socket.socket()
+# Check if the configuration file exists
+if not os.path.exists('server.conf'):
+    print("Configuration file 'server.conf' not found. Sending 404 error.")
+    exit()
 
-try:
-    sock.bind(('', 80))
-    print("Using port 80")
-except OSError:
-    sock.bind(('', 8080))
-    print("Using port 8080")
+# Load server configuration from server.conf
+config = configparser.ConfigParser()
+config.read('server.conf')
+
+port = int(config.get('server configuration', 'port'))
+work_dir = config.get('server configuration', 'work_dir')
+max_request_size = int(config.get('server configuration', 'max_request_size'))
+
+
+def handle_client(conn, addr):
+    data = conn.recv(max_request_size)
+    msg = data.decode()
+
+    print(f"Request from {addr}:")
+    print(msg)
+
+    request_parts = msg.split()
+    resource = request_parts[1].lstrip("/")
+    if not resource:
+        resource = "index.html"
+
+    filename = os.path.join(work_dir, resource)
+
+    if not os.path.exists(filename):
+        content = b"File not found"
+        response_status = "HTTP/1.1 404 Not Found\r\n"
+        content_length = len(content)
+    else:
+        try:
+            with open(filename, "rb") as file:
+                content = file.read()
+                response_status = "HTTP/1.1 200 OK\r\n"
+                content_length = len(content)
+        except FileNotFoundError:
+            content = b"File not found"
+            response_status = "HTTP/1.1 404 Not Found\r\n"
+            content_length = len(content)
 
 sock.listen(5)
 
